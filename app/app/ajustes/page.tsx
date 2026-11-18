@@ -5,6 +5,7 @@ import { Trash2, UserPlus, Download, Copy, Check } from "lucide-react";
 import { useData, useStore } from "@/lib/store";
 import { PageHeader, Field, Badge } from "@/components/ui";
 import type { TeamInfo } from "@/lib/types";
+import { copyText } from "@/lib/utils";
 
 export default function Ajustes() {
   const { d, update } = useData(); const { state, meta, setTeam, removeWedding } = useStore(); const w = d.wedding; const router = useRouter();
