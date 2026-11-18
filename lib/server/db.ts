@@ -36,7 +36,9 @@ async function init(): Promise<Driver> {
   const url = process.env.DATABASE_URL;
   let drv: Driver;
   if (url) {
-    const sql = postgres(url, { max: 1, prepare: false, idle_timeout: 20, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require" });
+    // Neon costuma incluir sslmode e channel_binding na URL; o driver recebe SSL por opção, então removemos os dois.
+    let clean = url; try { const u = new URL(url); u.searchParams.delete("channel_binding"); u.searchParams.delete("sslmode"); clean = u.toString(); } catch { /* usa a URL original */ }
+    const sql = postgres(clean, { max: 1, prepare: false, idle_timeout: 20, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : "require" });
     const raw: Raw = (t, p) => sql.unsafe(t, p as never[]) as unknown as Promise<Record<string, unknown>[]>;
     drv = { ex: mk(raw), tx: (fn) => sql.begin(async (t) => fn(mk((text, p) => t.unsafe(text, p as never[]) as unknown as Promise<Record<string, unknown>[]>))) as Promise<never> };
   } else {
