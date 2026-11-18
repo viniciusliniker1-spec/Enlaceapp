@@ -18,13 +18,16 @@ export async function accessFor(weddingId: string, x: Ex = X): Promise<Access> {
 }
 export const paywall = { error: "O período grátis terminou. Assine para continuar editando.", code: "payment_required" };
 
-const base = () => (process.env.ASAAS_SANDBOX === "1" ? "https://api-sandbox.asaas.com/v3" : "https://api.asaas.com/v3");
+const apiKey = () => (process.env.ASAAS_API_KEY ?? "").trim().replace(/^["']|["']$/g, "");
+/** O ambiente é deduzido da própria chave ($aact_hmlg_ = sandbox, $aact_prod_ = produção); ASAAS_SANDBOX só vale se a chave não tiver o marcador. */
+const isSandbox = () => { const k = apiKey(); if (k.includes("_hmlg_")) return true; if (k.includes("_prod_")) return false; return process.env.ASAAS_SANDBOX === "1"; };
+const base = () => (isSandbox() ? "https://api-sandbox.asaas.com/v3" : "https://api.asaas.com/v3");
 async function asaas<T>(path: string, method = "GET", body?: unknown): Promise<T> {
-  const key = process.env.ASAAS_API_KEY; if (!key) throw new Error("billing_not_configured");
+  const key = apiKey(); if (!key) throw new Error("billing_not_configured");
   const r = await fetch(base() + path, { method, headers: { access_token: key, "content-type": "application/json", "user-agent": "enlace" }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000) });
   const j = (await r.json().catch(() => ({}))) as { errors?: { description: string }[] } & T; if (!r.ok) throw new Error(j.errors?.[0]?.description || `Asaas respondeu ${r.status}`); return j;
 }
-export const billingConfigured = () => !!process.env.ASAAS_API_KEY;
+export const billingConfigured = () => !!apiKey();
 export async function startCheckout(scope: string, plan: "casal" | "assessor", user: { name: string; email: string }, cpfCnpj: string): Promise<string> {
   const row = await one<{ customer_id: string | null; subscription_id: string | null; status: string }>("SELECT customer_id, subscription_id, status FROM billing WHERE scope = ?", scope);
   let customer = row?.customer_id; let sub = row?.subscription_id;
