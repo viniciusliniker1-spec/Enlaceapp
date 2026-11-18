@@ -25,9 +25,11 @@ const base = () => (isSandbox() ? "https://api-sandbox.asaas.com/v3" : "https://
 async function asaas<T>(path: string, method = "GET", body?: unknown): Promise<T> {
   const key = apiKey(); if (!key) throw new Error("billing_not_configured");
   const r = await fetch(base() + path, { method, headers: { access_token: key, "content-type": "application/json", "user-agent": "enlace" }, body: body ? JSON.stringify(body) : undefined, signal: AbortSignal.timeout(15000) });
-  const j = (await r.json().catch(() => ({}))) as { errors?: { description: string }[] } & T; if (!r.ok) throw new Error(j.errors?.[0]?.description || `Asaas respondeu ${r.status}`); return j;
+  const j = (await r.json().catch(() => ({}))) as { errors?: { description: string }[] } & T; if (!r.ok) throw new Error((j.errors?.[0]?.description || `Asaas respondeu ${r.status}`) + ` (ambiente usado: ${isSandbox() ? "sandbox" : "produção"})`); return j;
 }
 export const billingConfigured = () => !!apiKey();
+/** Diagnóstico sem expor a chave: só o tipo detectado, o endereço usado e o tamanho. */
+export const billingDiag = () => { const k = apiKey(); return { env: isSandbox() ? "sandbox" : "produção", host: new URL(base()).host, keyKind: k.includes("_hmlg_") ? "sandbox" : k.includes("_prod_") ? "produção" : k ? "não reconhecida" : "ausente", keyLength: k.length, build: "asaas-v2" }; };
 export async function startCheckout(scope: string, plan: "casal" | "assessor", user: { name: string; email: string }, cpfCnpj: string): Promise<string> {
   const row = await one<{ customer_id: string | null; subscription_id: string | null; status: string }>("SELECT customer_id, subscription_id, status FROM billing WHERE scope = ?", scope);
   let customer = row?.customer_id; let sub = row?.subscription_id;
