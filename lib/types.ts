@@ -12,13 +12,15 @@ export interface BudgetCat { id: string; name: string; planned: number; }
 export interface Guest { id: string; name: string; group: string; list: "A" | "B"; rsvp: "pendente" | "confirmado" | "recusado"; fee: "inteira" | "meia" | "isenta"; tableId?: string; phone: string; }
 export interface Table { id: string; name: string; seats: number; x: number; y: number; kind: "mesa" | "casal" | "pista" | "bar" | "bolo"; }
 export interface Task { id: string; title: string; phase: number; done: boolean; due?: string; owner: string; }
-export interface Gift { id: string; title: string; category: string; price: number; url: string; qty: number; got: number; reservedBy: string[]; kind: "casa" | "lua-de-mel" | "cota"; }
+export interface Gift { id: string; title: string; category: string; price: number; url: string; qty: number; got: number; reservedBy: string[]; kind: "casa" | "lua-de-mel" | "cota"; image?: string; store?: string; }
 export interface EnxovalItem { id: string; room: string; name: string; qty: number; state: "novo" | "tenho" | "falta" | "comprado"; essential: boolean; }
 export interface Moment { id: string; time: string; title: string; who: string; }
 export interface Recado { id: string; from: string; text: string; date: string; }
-export interface Member { id: string; email: string; role: "editar" | "ver"; }
 export interface WeddingData {
   wedding: Wedding; vendors: Vendor[]; payments: Payment[]; cats: BudgetCat[]; guests: Guest[]; tables: Table[];
-  tasks: Task[]; gifts: Gift[]; enxoval: EnxovalItem[]; moments: Moment[]; recados: Recado[]; members: Member[];
+  tasks: Task[]; gifts: Gift[]; enxoval: EnxovalItem[]; moments: Moment[]; recados: Recado[];
 }
-export interface AppState { role: "casal" | "assessor"; activeId: string | null; weddings: Record<string, WeddingData>; hideMoney: boolean; onboarded: boolean; }
+export interface TeamInfo { owner: { id: string; email: string; name: string }; members: { id: string; email: string; name: string; role: "editar" | "ver" }[]; pending: { token: string; email: string; role: string }[]; }
+export interface WeddingMeta { seq: number; role: "owner" | "editar" | "ver"; giftToken: string; scheduleToken: string; team: TeamInfo; }
+export interface AppUser { id: string; email: string; name: string; role: "casal" | "assessor"; }
+export interface AppState { user: AppUser | null; activeId: string | null; weddings: Record<string, WeddingData>; meta: Record<string, WeddingMeta>; hideMoney: boolean; }

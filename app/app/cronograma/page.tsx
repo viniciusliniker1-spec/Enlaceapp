@@ -1,14 +1,15 @@
 "use client";
 import { Plus, Trash2, Share2, Printer } from "lucide-react";
 import { useState } from "react";
-import { useData } from "@/lib/store";
+import { useData, useStore } from "@/lib/store";
 import { PageHeader } from "@/components/ui";
-import { encodePayload, uid, fmtDateLong } from "@/lib/utils";
+import { uid, fmtDateLong } from "@/lib/utils";
+import { copyText } from "@/lib/utils";
 
 export default function Cronograma() {
-  const { d, update } = useData(); const w = d.wedding; const [copied, setCopied] = useState(false);
+  const { d, update } = useData(); const { meta } = useStore(); const w = d.wedding; const [copied, setCopied] = useState(false);
   const sorted = [...d.moments].sort((a, b) => a.time.localeCompare(b.time));
-  const share = async () => { const url = `${location.origin}/cronograma#${encodePayload({ p1: w.partner1, p2: w.partner2, date: w.date, venue: w.receptionPlace || w.venue, addr: w.receptionAddr, phone: w.phone, m: sorted.map((m) => [m.time, m.title, m.who]), v: d.vendors.filter((v) => v.status === "contratado").map((v) => [v.name, v.category, v.contact, v.phone]) })}`; await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); };
+  const share = async () => { await copyText(`${location.origin}/cronograma/${meta!.scheduleToken}`); setCopied(true); setTimeout(() => setCopied(false), 1800); };
   return (
     <div>
       <PageHeader title="Cronograma do dia" sub="Hora a hora, com quem é responsável. Compartilhem o link com todos os fornecedores (sem login) ou imprimam." actions={<><button className="btn btn-ghost" onClick={() => window.print()}><Printer size={15} />PDF</button><button className="btn btn-primary" onClick={share}><Share2 size={15} />{copied ? "Link copiado!" : "Link para fornecedores"}</button></>} />

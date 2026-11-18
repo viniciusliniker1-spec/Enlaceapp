@@ -11,3 +11,8 @@ export const addDays = (iso: string, n: number) => { const d = new Date(iso + "T
 export const todayISO = () => new Date().toISOString().slice(0, 10);
 export function encodePayload(o: unknown) { return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, "-").replace(/\//g, "_"); }
 export function decodePayload<T>(s: string): T | null { try { return JSON.parse(decodeURIComponent(escape(atob(s.replace(/-/g, "+").replace(/_/g, "/"))))); } catch { return null; } }
+export async function copyText(t: string) {
+  try { await navigator.clipboard.writeText(t); return true; } catch {
+    try { const a = document.createElement("textarea"); a.value = t; a.style.position = "fixed"; a.style.opacity = "0"; document.body.appendChild(a); a.select(); const ok = document.execCommand("copy"); a.remove(); return ok; } catch { return false; }
+  }
+}

@@ -1,13 +1,13 @@
 "use client";
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { Phone } from "lucide-react";
-import { decodePayload, fmtDateLong } from "@/lib/utils";
+import { fmtDateLong } from "@/lib/utils";
 import { Logo } from "@/components/ui";
 interface P { p1: string; p2: string; date: string; venue: string; addr: string; phone: string; m: [string, string, string][]; v: [string, string, string, string][] }
-export default function Pub() {
-  const [p, setP] = useState<P | null | undefined>(undefined);
-  useEffect(() => { const h = location.hash.slice(1); setP(h ? decodePayload<P>(h) : null); }, []);
-  if (p === undefined) return null; if (!p) return <div className="grid min-h-screen place-items-center text-muted">Link inválido.</div>;
+export default function Pub({ params }: { params: Promise<{ token: string }> }) {
+  const { token } = use(params); const [p, setP] = useState<P | null | undefined>(undefined);
+  useEffect(() => { fetch(`/api/public/schedule/${token}`).then((r) => (r.ok ? r.json() : null)).then(setP).catch(() => setP(null)); }, [token]);
+  if (p === undefined) return <div className="grid min-h-screen place-items-center text-muted">Carregando…</div>; if (!p) return <div className="grid min-h-screen place-items-center text-muted">Cronograma não encontrado.</div>;
   return (
     <div className="mx-auto max-w-2xl p-5">
       <header className="py-6 text-center"><Logo className="mb-4 justify-center" /><p className="text-sm text-muted">Cronograma para fornecedores</p><h1 className="text-4xl font-semibold">{p.p1} e {p.p2}</h1><p className="mt-1 text-sm capitalize text-muted">{fmtDateLong(p.date)} · {p.venue}{p.addr && `, ${p.addr}`}</p></header>

@@ -2,9 +2,11 @@
 import { useMemo, useState } from "react";
 import { motion, useMotionValue, useTransform, AnimatePresence } from "framer-motion";
 import { Check, X, Share2, Plus, Trash2, Link2, Gift as GiftI, Heart } from "lucide-react";
-import { useData } from "@/lib/store";
+import { useData, useStore } from "@/lib/store";
 import { PageHeader, Progress, Badge, Field, Modal, Money } from "@/components/ui";
-import { cn, encodePayload, uid, brl } from "@/lib/utils";
+import { cn, uid, brl } from "@/lib/utils";
+import { copyText } from "@/lib/utils";
+import { ProductPicker, type Product } from "@/components/product-picker";
 import type { EnxovalItem, Gift } from "@/lib/types";
 
 const ST: Record<EnxovalItem["state"], string> = { novo: "Pendente", tenho: "Já temos", falta: "Falta", comprado: "Comprado/ganhado" };
@@ -25,19 +27,20 @@ function Swipe({ items, onAnswer }: { items: EnxovalItem[]; onAnswer: (id: strin
     </div>);
 }
 export default function Presentes() {
-  const { d, update } = useData(); const [tab, setTab] = useState<"enxoval" | "lista" | "links">("enxoval"); const [room, setRoom] = useState("Todos"); const [g, setG] = useState<Gift | null>(null); const [copied, setCopied] = useState(false);
+  const { d, update } = useData(); const { meta } = useStore(); const [tab, setTab] = useState<"enxoval" | "lista" | "links">("enxoval"); const [room, setRoom] = useState("Todos"); const [g, setG] = useState<Gift | null>(null); const [copied, setCopied] = useState(false); const [pick, setPick] = useState(false); const [pickCat, setPickCat] = useState("Casa");
+  const addProduct = (p: Product) => { update((x) => x.gifts.push({ id: uid(), title: p.title, category: pickCat, price: p.price, url: p.url, qty: 1, got: 0, reservedBy: [], kind: "casa", image: p.image, store: p.store })); setPick(false); setTab("lista"); };
   const rooms = useMemo(() => ["Todos", ...new Set(d.enxoval.map((e) => e.room))], [d.enxoval]);
   const pend = d.enxoval.filter((e) => e.state === "novo"); const have = d.enxoval.filter((e) => e.state === "tenho" || e.state === "comprado").length;
   const setS = (id: string, s: EnxovalItem["state"]) => update((x) => { x.enxoval.find((e) => e.id === id)!.state = s; });
   const w = d.wedding;
-  const share = async () => { const url = `${location.origin}/lista#${encodePayload({ p1: w.partner1, p2: w.partner2, phone: w.phone, date: w.date, gifts: d.gifts.filter((x) => x.got < x.qty).map((x) => ({ id: x.id, t: x.title, p: x.price, c: x.category, k: x.kind, left: x.qty - x.got, u: x.url })) })}`; await navigator.clipboard.writeText(url); setCopied(true); setTimeout(() => setCopied(false), 1800); };
+  const share = async () => { await copyText(`${location.origin}/lista/${meta!.giftToken}`); setCopied(true); setTimeout(() => setCopied(false), 1800); };
   const addFromEnx = (e: EnxovalItem) => update((x) => { x.gifts.push({ id: uid(), title: e.name, category: e.room, price: 150, url: "", qty: Math.min(e.qty, 3), got: 0, reservedBy: [], kind: "casa" }); x.enxoval.find((k) => k.id === e.id)!.state = "falta"; });
   const save = () => { if (!g?.title) return; update((x) => { const i = x.gifts.findIndex((k) => k.id === g.id); if (i >= 0) x.gifts[i] = g; else x.gifts.push(g); }); setG(null); };
   const host = (u: string) => { try { return new URL(u).hostname.replace("www.", ""); } catch { return ""; } };
   return (
     <div>
       <PageHeader title="Presentes e enxoval" sub="Montem o enxoval da casa, escolham o que querem ganhar e compartilhem um link: ninguém dá o mesmo item." actions={<button className="btn btn-primary" onClick={share}><Share2 size={15} />{copied ? "Link copiado!" : "Copiar link da lista"}</button>} />
-      <div className="mb-4 flex gap-2">{([["enxoval", "Enxoval da casa"], ["lista", "Lista de presentes"], ["links", "Links salvos"]] as const).map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={cn("btn btn-sm", tab === k ? "btn-primary" : "btn-ghost")}>{l}</button>)}</div>
+      <div className="mb-4 flex gap-2">{([["enxoval", "Enxoval da casa"], ["lista", "Lista de presentes"], ["links", "Adicionar produtos"]] as const).map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={cn("btn btn-sm", tab === k ? "btn-primary" : "btn-ghost")}>{l}</button>)}</div>
       {tab === "enxoval" && (<>
         <div className="card mb-4 p-5"><div className="mb-2 flex justify-between text-sm"><span className="font-semibold">{have} de {d.enxoval.length} itens resolvidos</span><span className="text-muted">{pend.length} para revisar</span></div><Progress value={(have / Math.max(1, d.enxoval.length)) * 100} tone="gold" /></div>
         <Swipe items={pend} onAnswer={setS} />
@@ -50,18 +53,18 @@ export default function Presentes() {
       {tab === "lista" && (<>
         <div className="mb-4 flex justify-end"><button className="btn btn-ghost" onClick={() => setG({ id: uid(), title: "", category: "Casa", price: 100, url: "", qty: 1, got: 0, reservedBy: [], kind: "casa" })}><Plus size={15} />Novo presente ou cota</button></div>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{d.gifts.map((x) => (
-          <article key={x.id} className="card flex flex-col p-4"><div className="flex items-start justify-between gap-2"><Badge tone={x.kind === "lua-de-mel" ? "terra" : x.kind === "cota" ? "gold" : "sage"}>{x.category}</Badge>{x.got >= x.qty && <Badge tone="sage"><Check size={11} className="mr-1" />Garantido</Badge>}</div>
+          <article key={x.id} className="card flex flex-col p-4">{x.image && <img src={x.image} alt="" loading="lazy" referrerPolicy="no-referrer" className="-mx-1 -mt-1 mb-3 h-36 w-[calc(100%+0.5rem)] rounded-xl object-cover" />}<div className="flex items-start justify-between gap-2"><Badge tone={x.kind === "lua-de-mel" ? "terra" : x.kind === "cota" ? "gold" : "sage"}>{x.category}</Badge>{x.got >= x.qty && <Badge tone="sage"><Check size={11} className="mr-1" />Garantido</Badge>}</div>
             <h3 className="mt-2 font-sans text-base font-semibold tracking-tight">{x.title}</h3><Money v={x.price} className="text-lg font-semibold" /><div className="text-xs text-muted">{x.got}/{x.qty} escolhidos{x.reservedBy.length > 0 && ` · ${x.reservedBy.join(", ")}`}</div><Progress value={(x.got / x.qty) * 100} className="mt-2" tone="terra" />
             <div className="mt-3 flex flex-wrap gap-1.5"><button className="btn btn-ghost btn-sm" onClick={() => { const who = prompt("Quem escolheu este presente?"); if (who) update((s) => { const k = s.gifts.find((q) => q.id === x.id)!; k.got = Math.min(k.qty, k.got + 1); k.reservedBy.push(who); }); }}><Heart size={12} />Alguém escolheu</button><button className="btn btn-ghost btn-sm" onClick={() => setG(x)}>Editar</button><button aria-label="Excluir" className="ml-auto text-muted hover:text-terra" onClick={() => update((s) => { s.gifts = s.gifts.filter((q) => q.id !== x.id); })}><Trash2 size={14} /></button></div></article>))}</div></>)}
       {tab === "links" && (
-        <div className="space-y-3"><p className="text-sm text-muted">Cole o link de qualquer loja (Amazon, Mercado Livre, Shopee…), ajuste nome e preço e ele entra na lista de presentes.</p>
-          <div className="card divide-y divide-line">{d.gifts.filter((x) => x.url).map((x) => <a key={x.id} href={x.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-2 p-4 text-sm hover:bg-ivory"><span className="flex items-center gap-2"><Link2 size={14} />{x.title}</span><span className="text-xs text-muted">{host(x.url)} · {brl(x.price)}</span></a>)}{!d.gifts.some((x) => x.url) && <p className="p-6 text-center text-sm text-muted">Nenhum link salvo ainda.</p>}</div>
-          <button className="btn btn-primary" onClick={() => setG({ id: uid(), title: "", category: "Casa", price: 0, url: "", qty: 1, got: 0, reservedBy: [], kind: "casa" })}><Plus size={15} />Salvar produto por link</button></div>)}
+        <div className="space-y-4"><p className="text-sm text-muted">Procurem o produto nas lojas (Mercado Livre, Amazon, Shopee, Magalu…) ou colem o link direto. O Enlace lê foto, nome e preço e põe na lista de presentes.</p>
+          <div className="card p-5"><label className="mb-3 flex items-center gap-2 text-sm">Categoria na lista <select className="input w-auto" value={pickCat} onChange={(e) => setPickCat(e.target.value)}>{["Casa", "Cozinha", "Quarto", "Banheiro", "Sala", "Eletro e casa", "Lua de mel"].map((c) => <option key={c}>{c}</option>)}</select></label><ProductPicker onAdd={addProduct} /></div>
+          <div className="card divide-y divide-line">{d.gifts.filter((x) => x.url).map((x) => <a key={x.id} href={x.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-2 p-4 text-sm hover:bg-ivory"><span className="flex min-w-0 items-center gap-2"><Link2 size={14} className="shrink-0" /><span className="truncate">{x.title}</span></span><span className="shrink-0 text-xs text-muted">{x.store || host(x.url)} · {brl(x.price)}</span></a>)}{!d.gifts.some((x) => x.url) && <p className="p-6 text-center text-sm text-muted">Nenhum produto de loja adicionado ainda.</p>}</div></div>)}
       <Modal open={!!g} onClose={() => setG(null)} title="Presente"><div className="space-y-3">{g && <>
         <Field label="Nome"><input className="input" autoFocus value={g.title} onChange={(e) => setG({ ...g, title: e.target.value })} /></Field>
         <div className="grid grid-cols-2 gap-3"><Field label="Preço (R$)"><input type="number" className="input" value={g.price} onChange={(e) => setG({ ...g, price: +e.target.value })} /></Field><Field label="Quantidade"><input type="number" min={1} className="input" value={g.qty} onChange={(e) => setG({ ...g, qty: Math.max(1, +e.target.value) })} /></Field></div>
         <div className="grid grid-cols-2 gap-3"><Field label="Categoria"><input className="input" value={g.category} onChange={(e) => setG({ ...g, category: e.target.value })} /></Field><Field label="Tipo"><select className="input" value={g.kind} onChange={(e) => setG({ ...g, kind: e.target.value as Gift["kind"] })}><option value="casa">Casa</option><option value="lua-de-mel">Lua de mel</option><option value="cota">Cota</option></select></Field></div>
-        <Field label="Link do produto"><input className="input" type="url" value={g.url} onChange={(e) => setG({ ...g, url: e.target.value })} placeholder="https://…" /></Field><button className="btn btn-primary w-full" onClick={save}>Salvar</button></>}</div></Modal>
+        <Field label="Foto (endereço da imagem)"><input className="input" type="url" value={g.image ?? ""} onChange={(e) => setG({ ...g, image: e.target.value })} placeholder="https://…" /></Field><Field label="Link do produto"><input className="input" type="url" value={g.url} onChange={(e) => setG({ ...g, url: e.target.value })} placeholder="https://…" /></Field><button className="btn btn-primary w-full" onClick={save}>Salvar</button></>}</div></Modal>
     </div>
   );
 }

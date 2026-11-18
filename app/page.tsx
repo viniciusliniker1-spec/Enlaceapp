@@ -38,7 +38,7 @@ export default function Home() {
         <div className="mx-auto flex max-w-6xl items-center gap-6 px-5 py-3">
           <Logo />
           <nav className="ml-6 hidden gap-5 text-sm font-medium text-muted md:flex">{[["#como", "Como funciona"], ["#recursos", "Recursos"], ["#convite", "Convite"], ["#assessores", "Assessores"], ["#preco", "Plano"], ["#duvidas", "Dúvidas"]].map(([h, l]) => <a key={h} href={h} className="hover:text-ink">{l}</a>)}</nav>
-          <Link href="/app" className="btn btn-primary btn-sm ml-auto">Começar grátis</Link>
+          <Link href="/entrar" className="btn btn-ghost btn-sm ml-auto">Entrar</Link><Link href="/app" className="btn btn-primary btn-sm">Começar grátis</Link>
         </div>
       </header>
 

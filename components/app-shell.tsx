@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Home, Store, Wallet, Users, LayoutGrid, ListChecks, Gift, Mail, Clock, Briefcase, Search, Eye, EyeOff, Menu, X, Settings } from "lucide-react";
+import { LogOut, Home, Store, Wallet, Users, LayoutGrid, ListChecks, Gift, Mail, Clock, Briefcase, Search, Eye, EyeOff, Menu, X, Settings } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Logo, Modal } from "./ui";
 import { cn, daysUntil } from "@/lib/utils";
@@ -14,8 +14,8 @@ const NAV = [
   { href: "/app/ajustes", label: "Casamento e equipe", icon: Settings },
 ];
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { state, ready, data, setState, switchTo } = useStore(); const path = usePathname(); const router = useRouter(); const [open, setOpen] = useState(false); const [q, setQ] = useState(""); const [sOpen, setSOpen] = useState(false);
-  useEffect(() => { if (ready && !data && path !== "/app/comecar") router.replace("/app/comecar"); }, [ready, data, path, router]);
+  const { state, ready, data, setState, switchTo, canEdit, syncError, saving, logout } = useStore(); const path = usePathname(); const router = useRouter(); const [open, setOpen] = useState(false); const [q, setQ] = useState(""); const [sOpen, setSOpen] = useState(false);
+  useEffect(() => { if (!ready) return; if (!state.user) router.replace("/entrar"); else if (!data && path !== "/app/comecar") router.replace("/app/comecar"); }, [ready, state.user, data, path, router]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSOpen(true); } }; addEventListener("keydown", h); return () => removeEventListener("keydown", h); }, []);
   useEffect(() => setOpen(false), [path]);
   const results = useMemo(() => {
@@ -27,10 +27,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return r.slice(0, 12);
   }, [q, data]);
   if (!ready) return <div className="grid min-h-screen place-items-center text-muted">Carregando…</div>;
+  if (!state.user) return null;
   if (path === "/app/comecar") return <>{children}</>;
   if (!data) return null;
   const w = data.wedding; const ids = Object.keys(state.weddings);
-  const nav = [...NAV, ...(state.role === "assessor" ? [{ href: "/app/assessor", label: "Carteira de casamentos", icon: Briefcase }] : [])];
+  const nav = [...NAV, ...(state.user?.role === "assessor" ? [{ href: "/app/assessor", label: "Carteira de casamentos", icon: Briefcase }] : [])];
   const side = (
     <nav className="flex h-full flex-col gap-1 p-4">
       <Link href="/" className="mb-4 px-2"><Logo /></Link>
@@ -52,8 +53,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <button aria-label="Menu" className="rounded-full p-2 hover:bg-white lg:hidden" onClick={() => setOpen(!open)}>{open ? <X size={20} /> : <Menu size={20} />}</button>
           <button onClick={() => setSOpen(true)} className="flex flex-1 items-center gap-2 rounded-full border border-line bg-white px-4 py-2 text-left text-sm text-muted sm:max-w-md"><Search size={15} />Buscar fornecedor, convidado, tarefa… <kbd className="ml-auto hidden rounded border border-line px-1.5 text-[10px] sm:block">Ctrl K</kbd></button>
           <button onClick={() => setState((s) => ({ ...s, hideMoney: !s.hideMoney }))} className="ml-auto flex items-center gap-2 rounded-full border border-line bg-white px-3 py-2 text-xs font-semibold" aria-pressed={state.hideMoney}>{state.hideMoney ? <EyeOff size={15} /> : <Eye size={15} />}<span className="hidden sm:inline">{state.hideMoney ? "Valores ocultos" : "Ocultar valores"}</span></button>
+          <span className="hidden text-xs text-muted sm:block" aria-live="polite">{saving ? "Salvando…" : "Salvo"}</span>
+          <button aria-label="Sair" title={`Sair (${state.user.name})`} onClick={async () => { await logout(); router.replace("/entrar"); }} className="rounded-full border border-line bg-white p-2"><LogOut size={15} /></button>
         </header>
-        <main className="mx-auto max-w-6xl p-4 sm:p-8">{children}</main>
+        <main className="mx-auto max-w-6xl p-4 sm:p-8">{!canEdit && <p className="mb-4 rounded-xl bg-gold-soft p-3 text-sm">Você tem acesso somente para visualizar este casamento.</p>}{syncError && <p role="alert" className="mb-4 rounded-xl bg-terra-soft p-3 text-sm text-terra">{syncError}</p>}{children}</main>
       </div>
       <Modal open={sOpen} onClose={() => { setSOpen(false); setQ(""); }} title="Buscar no casamento">
         <input autoFocus className="input" placeholder="Digite ao menos 2 letras…" value={q} onChange={(e) => setQ(e.target.value)} />

@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Plus, Phone, Paperclip, Trash2, MessageCircle, Trophy } from "lucide-react";
+import { Plus, Paperclip, Trash2, MessageCircle, Trophy, Search, MapPin, Loader2 } from "lucide-react";
 import { useData } from "@/lib/store";
 import { PageHeader, Modal, Field, Money, Badge, Empty } from "@/components/ui";
 import { VENDOR_CATS } from "@/lib/plan";
@@ -10,14 +10,17 @@ import type { Vendor, Status } from "@/lib/types";
 const blank = (): Vendor => ({ id: uid(), name: "", category: VENDOR_CATS[1], contact: "", phone: "", status: "cotacao", value: 0, notes: "", docs: [] });
 const TONE = { contratado: "sage", cotacao: "gold", descartado: "muted" } as const; const LBL = { contratado: "Contratado", cotacao: "Em cotação", descartado: "Descartado" };
 export default function Fornecedores() {
-  const { d, update } = useData(); const [f, setF] = useState<Vendor | null>(null); const [tab, setTab] = useState<Status | "todos" | "comparar">("todos");
+  const { d, update } = useData(); const [sOpen, setSOpen] = useState(false); const [sq, setSq] = useState({ cat: VENDOR_CATS[1], city: d.wedding.city }); const [places, setPlaces] = useState<{ name: string; address: string; phone: string; rating: number; mapsUrl: string }[] | null>(null); const [cfg, setCfg] = useState(true); const [busy, setBusy] = useState(false); const [serr, setSerr] = useState("");
+  const q = `${sq.cat.split(" e ")[0]} para casamento ${sq.city}`;
+  const findPlaces = async () => { setBusy(true); setSerr(""); setPlaces(null); try { const r = await fetch(`/api/vendors/search?q=${encodeURIComponent(q)}`); const j = await r.json(); if (!r.ok) throw new Error(j.error); setCfg(j.configured); setPlaces(j.places); } catch (e) { setSerr((e as Error).message); } setBusy(false); };
+  const addPlace = (p: { name: string; address: string; phone: string }) => { update((x) => x.vendors.push({ id: uid(), name: p.name, category: sq.cat, contact: "", phone: p.phone, status: "cotacao", value: 0, notes: p.address, docs: [] })); }; const [f, setF] = useState<Vendor | null>(null); const [tab, setTab] = useState<Status | "todos" | "comparar">("todos");
   const list = d.vendors.filter((v) => tab === "todos" || tab === "comparar" || v.status === tab);
   const save = () => { if (!f?.name) return; update((x) => { const i = x.vendors.findIndex((v) => v.id === f.id); if (i >= 0) x.vendors[i] = f; else x.vendors.push(f); }); setF(null); };
   const setStatus = (id: string, s: Status) => update((x) => { x.vendors.find((v) => v.id === id)!.status = s; });
   const cats = [...new Set(d.vendors.map((v) => v.category))];
   return (
     <div>
-      <PageHeader title="Fornecedores" sub="Da cotação ao contrato: contato, status, valor e documentos de cada um num lugar só." actions={<button className="btn btn-primary" onClick={() => setF(blank())}><Plus size={15} />Novo fornecedor</button>} />
+      <PageHeader title="Fornecedores" sub="Da cotação ao contrato: contato, status, valor e documentos de cada um num lugar só." actions={<><button className="btn btn-ghost" onClick={() => setSOpen(true)}><Search size={15} />Buscar fornecedores</button><button className="btn btn-primary" onClick={() => setF(blank())}><Plus size={15} />Novo fornecedor</button></>} />
       <div className="mb-4 flex flex-wrap gap-2">{(["todos", "contratado", "cotacao", "descartado", "comparar"] as const).map((t) => <button key={t} onClick={() => setTab(t)} className={cn("btn btn-sm", tab === t ? "btn-primary" : "btn-ghost")}>{t === "todos" ? "Todos" : t === "comparar" ? "Comparar cotações" : LBL[t]} {t !== "comparar" && <span className="opacity-60">{t === "todos" ? d.vendors.length : d.vendors.filter((v) => v.status === t).length}</span>}</button>)}</div>
       {tab === "comparar" ? (
         cats.map((c) => { const vs = d.vendors.filter((v) => v.category === c && v.status !== "descartado").sort((a, b) => a.value - b.value); if (vs.length < 1) return null; return (
@@ -36,6 +39,13 @@ export default function Fornecedores() {
               <button aria-label="Excluir" className="ml-auto p-1.5 text-muted hover:text-terra" onClick={() => confirm("Excluir este fornecedor e os pagamentos dele?") && update((x) => { x.vendors = x.vendors.filter((k) => k.id !== v.id); x.payments = x.payments.filter((p) => p.vendorId !== v.id); })}><Trash2 size={15} /></button>
             </div>
           </article>); })}</div>)}
+      <Modal open={sOpen} onClose={() => setSOpen(false)} title="Buscar fornecedores reais" wide>
+        <div className="space-y-3"><div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]"><select className="input" value={sq.cat} onChange={(e) => setSq({ ...sq, cat: e.target.value })}>{VENDOR_CATS.map((c) => <option key={c}>{c}</option>)}</select><input className="input" placeholder="Cidade" value={sq.city} onChange={(e) => setSq({ ...sq, city: e.target.value })} /><button className="btn btn-primary btn-sm" disabled={busy || sq.city.length < 2} onClick={findPlaces}>{busy ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}Buscar</button></div>
+          <a className="btn btn-ghost btn-sm w-full" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/${encodeURIComponent(q)}`}><MapPin size={14} />Abrir busca no Google Maps</a>
+          {!cfg && <p className="rounded-xl bg-gold-soft p-3 text-xs">A busca integrada precisa da chave GOOGLE_PLACES_KEY no servidor. Enquanto isso, use o Google Maps acima e cadastre o fornecedor em "Novo fornecedor".</p>}
+          {serr && <p role="alert" className="text-sm text-terra">{serr}</p>}
+          <div className="max-h-96 divide-y divide-line overflow-y-auto">{places?.map((p) => <div key={p.name + p.address} className="flex items-center justify-between gap-3 py-2.5 text-sm"><div className="min-w-0"><div className="font-semibold">{p.name} {p.rating > 0 && <span className="text-xs text-gold">★ {p.rating}</span>}</div><div className="truncate text-xs text-muted">{p.address}{p.phone && ` · ${p.phone}`}</div></div><div className="flex shrink-0 gap-1.5">{p.mapsUrl && <a className="btn btn-ghost btn-sm" href={p.mapsUrl} target="_blank" rel="noreferrer">Mapa</a>}<button className="btn btn-primary btn-sm" disabled={d.vendors.some((v) => v.name === p.name)} onClick={() => addPlace(p)}>{d.vendors.some((v) => v.name === p.name) ? "Na lista" : "Adicionar"}</button></div></div>)}</div></div>
+      </Modal>
       <Modal open={!!f} onClose={() => setF(null)} title={f && d.vendors.some((v) => v.id === f.id) ? "Editar fornecedor" : "Novo fornecedor"}>
         {f && <div className="space-y-3">
           <Field label="Nome"><input className="input" autoFocus value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Field>
