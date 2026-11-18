@@ -1,0 +1,1 @@
+{ "name": "Enlace", "short_name": "Enlace", "start_url": "/app", "display": "standalone", "background_color": "#fbf7f1", "theme_color": "#3f5b4b", "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }] }
