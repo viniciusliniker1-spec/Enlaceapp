@@ -1,34 +1,44 @@
 # Enlace
 
-Organizador de casamento para casais e assessores. Next.js 16, React 19, Tailwind 4, Framer Motion, SQLite (`node:sqlite`, Node 22+).
+Organizador de casamento para casais e assessores. Next.js 16, React 19, Tailwind 4, Framer Motion, Postgres.
 
-## Rodar
+## Rodar local
 
 ```
 npm install
-npm run dev
+npm run dev        # sem DATABASE_URL usa PGlite (Postgres em WASM) na pasta .data
 ```
 
-## O que é real (backend)
+## Publicar na Vercel
 
-- Contas (e-mail e senha com scrypt, sessão em cookie httpOnly), casais e assessores.
-- Dados de cada casamento no banco, sincronizados entre os membros (polling de 5 s) e com operações por registro,
-  então duas pessoas editando itens diferentes não se sobrescrevem.
-- Equipe: o criador convida por e-mail com permissão de editar ou só ver (o servidor recusa escrita de quem só vê).
-- Convite digital com link por família: o convidado confirma presença e deixa recado sem conta; o casal vê na hora.
-- Lista de presentes pública com reserva atômica (nunca dois convidados no mesmo item).
-- Cronograma público para fornecedores.
-- Produtos: leitura de qualquer link de loja (JSON-LD, Open Graph) com proteção contra SSRF; busca integrada no
-  Mercado Livre (`ML_CLIENT_ID` e `ML_CLIENT_SECRET`); fornecedores reais pelo Google Places (`GOOGLE_PLACES_KEY`).
+1. **Banco:** crie um Postgres gratuito no Neon (ou Supabase) e copie a URL de conexão (com pooler) para `DATABASE_URL`.
+   As tabelas são criadas sozinhas no primeiro acesso.
+2. **Vercel:** importe o repositório, em *Settings > Environment Variables* copie as variáveis de `.env.example`
+   (no mínimo `DATABASE_URL` e `APP_URL`) e faça o deploy.
+3. **E-mail (Resend):** crie a conta, verifique seu domínio e preencha `RESEND_API_KEY` e `EMAIL_FROM`.
+   Sem isso, recuperar senha e convites por e-mail não são enviados (o link de convite continua aparecendo no app).
+4. **Cobrança (Asaas):** crie a conta, gere a chave de API (`ASAAS_API_KEY`; deixe `ASAAS_SANDBOX=1` até validar),
+   e cadastre o webhook `https://SEU_DOMINIO/api/webhooks/asaas` com um token secreto igual a `ASAAS_WEBHOOK_TOKEN`
+   e os eventos de cobrança (confirmada, recebida, vencida) e de assinatura (removida, inativada).
+5. **Mercado Livre:** crie um app em developers.mercadolivre.com.br e preencha `ML_CLIENT_ID` e `ML_CLIENT_SECRET`.
+6. **Fornecedores reais:** no Google Cloud ative a *Places API (New)* e preencha `GOOGLE_PLACES_KEY`.
 
-Lojas como Mercado Livre, Amazon e Magalu bloqueiam leitura automática de páginas. Nesses casos o app preenche
-o nome pelo endereço e deixa o casal conferir preço e foto. A busca do Mercado Livre só funciona com as chaves oficiais.
+## Como funciona
 
-## Publicar
+- Contas com senha (scrypt) e sessão em cookie httpOnly. Casais e assessores.
+- Dados de cada casamento em registros sincronizados entre os membros (polling de 5 s), com edição por registro.
+- Equipe com permissão de editar ou só ver, aplicada no servidor.
+- Convite digital por família, presença e recados sem conta do convidado. Lista de presentes com reserva atômica
+  (linha travada no banco). Cronograma público para fornecedores.
+- Produtos: leitura de links de lojas (JSON-LD e Open Graph, com proteção contra SSRF), busca no Mercado Livre
+  e fornecedores pelo Google Places.
+- Teste grátis de 7 dias por casamento (assessor: por conta). Depois, só leitura e links públicos pausados até assinar
+  (R$ 34,90 por casamento ou R$ 129 por assessor, valores em `lib/server/billing.ts`).
 
-Precisa de um servidor Node com disco persistente (Railway, Fly.io, Render ou VPS): `docker build` e monte um volume em `/data`.
-O SQLite não funciona em hospedagem sem disco (como funções serverless). Para isso, troque `lib/server/db.ts` por Postgres.
+## Limites conhecidos
 
-## Ainda não existe
-
-Recuperação de senha e e-mails (precisam de um provedor de e-mail), cobrança da assinatura (Pix e cartão), e tempo real por WebSocket.
+- Lojas como Mercado Livre, Amazon e Magalu bloqueiam leitura automática de páginas; nesse caso o app preenche o
+  nome pelo endereço e o casal confere preço e foto. Busca confiável só com API oficial.
+- A cobrança foi escrita contra a documentação do Asaas e testada só no lado do servidor (webhook, bloqueio e
+  liberação). Valide o fluxo completo no ambiente sandbox da Asaas antes de abrir ao público.
+- Atualização por polling, não WebSocket.

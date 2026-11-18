@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { LogOut, Home, Store, Wallet, Users, LayoutGrid, ListChecks, Gift, Mail, Clock, Briefcase, Search, Eye, EyeOff, Menu, X, Settings } from "lucide-react";
+import { CreditCard, LogOut, Home, Store, Wallet, Users, LayoutGrid, ListChecks, Gift, Mail, Clock, Briefcase, Search, Eye, EyeOff, Menu, X, Settings } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Logo, Modal } from "./ui";
 import { cn, daysUntil } from "@/lib/utils";
@@ -11,10 +11,10 @@ const NAV = [
   { href: "/app", label: "Visão geral", icon: Home }, { href: "/app/tarefas", label: "Tarefas", icon: ListChecks }, { href: "/app/fornecedores", label: "Fornecedores", icon: Store },
   { href: "/app/financeiro", label: "Orçamento e pagamentos", icon: Wallet }, { href: "/app/convidados", label: "Convidados", icon: Users }, { href: "/app/mesas", label: "Mesas", icon: LayoutGrid },
   { href: "/app/convite", label: "Convite digital", icon: Mail }, { href: "/app/presentes", label: "Presentes e enxoval", icon: Gift }, { href: "/app/cronograma", label: "Cronograma do dia", icon: Clock },
-  { href: "/app/ajustes", label: "Casamento e equipe", icon: Settings },
+  { href: "/app/ajustes", label: "Casamento e equipe", icon: Settings }, { href: "/app/assinatura", label: "Assinatura", icon: CreditCard },
 ];
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { state, ready, data, setState, switchTo, canEdit, syncError, saving, logout } = useStore(); const path = usePathname(); const router = useRouter(); const [open, setOpen] = useState(false); const [q, setQ] = useState(""); const [sOpen, setSOpen] = useState(false);
+  const { state, ready, data, meta, setState, switchTo, canEdit, syncError, saving, logout } = useStore(); const path = usePathname(); const router = useRouter(); const [open, setOpen] = useState(false); const [q, setQ] = useState(""); const [sOpen, setSOpen] = useState(false);
   useEffect(() => { if (!ready) return; if (!state.user) router.replace("/entrar"); else if (!data && path !== "/app/comecar") router.replace("/app/comecar"); }, [ready, state.user, data, path, router]);
   useEffect(() => { const h = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") { e.preventDefault(); setSOpen(true); } }; addEventListener("keydown", h); return () => removeEventListener("keydown", h); }, []);
   useEffect(() => setOpen(false), [path]);
@@ -56,7 +56,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="hidden text-xs text-muted sm:block" aria-live="polite">{saving ? "Salvando…" : "Salvo"}</span>
           <button aria-label="Sair" title={`Sair (${state.user.name})`} onClick={async () => { await logout(); router.replace("/entrar"); }} className="rounded-full border border-line bg-white p-2"><LogOut size={15} /></button>
         </header>
-        <main className="mx-auto max-w-6xl p-4 sm:p-8">{!canEdit && <p className="mb-4 rounded-xl bg-gold-soft p-3 text-sm">Você tem acesso somente para visualizar este casamento.</p>}{syncError && <p role="alert" className="mb-4 rounded-xl bg-terra-soft p-3 text-sm text-terra">{syncError}</p>}{children}</main>
+        <main className="mx-auto max-w-6xl p-4 sm:p-8">{meta?.billing.state === "trial" && <p className="mb-4 rounded-xl bg-gold-soft p-3 text-sm">Período grátis: {meta.billing.daysLeft} dia(s) restantes. <Link href="/app/assinatura" className="font-semibold underline">Ver plano</Link></p>}{meta?.billing.state === "blocked" && <p role="alert" className="mb-4 rounded-xl bg-terra-soft p-3 text-sm text-terra">O período grátis terminou: o casamento está em modo leitura e os links públicos pausaram. <Link href="/app/assinatura" className="font-semibold underline">Assinar agora</Link></p>}{!canEdit && <p className="mb-4 rounded-xl bg-gold-soft p-3 text-sm">Você tem acesso somente para visualizar este casamento.</p>}{syncError && <p role="alert" className="mb-4 rounded-xl bg-terra-soft p-3 text-sm text-terra">{syncError}</p>}{children}</main>
       </div>
       <Modal open={sOpen} onClose={() => { setSOpen(false); setQ(""); }} title="Buscar no casamento">
         <input autoFocus className="input" placeholder="Digite ao menos 2 letras…" value={q} onChange={(e) => setQ(e.target.value)} />

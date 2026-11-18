@@ -22,6 +22,7 @@ function Form() {
         <Field label="E-mail"><input className="input" type="email" required value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} autoComplete="email" /></Field>
         <Field label="Senha"><input className="input" type="password" required minLength={mode === "register" ? 8 : 1} value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} autoComplete={mode === "login" ? "current-password" : "new-password"} placeholder={mode === "register" ? "mínimo de 8 caracteres" : ""} /></Field>
         {err && <p role="alert" className="rounded-xl bg-terra-soft p-3 text-sm text-terra">{err}</p>}
+        {mode === "login" && <Link href="/esqueci" className="block text-right text-xs font-semibold text-sage underline">Esqueci a senha</Link>}
         <button className="btn btn-primary w-full" disabled={busy}>{busy ? "Aguarde…" : mode === "login" ? "Entrar" : "Criar conta"}</button>
         <p className="text-center text-sm text-muted">{mode === "login" ? "Ainda não tem conta?" : "Já tem conta?"} <button type="button" className="font-semibold text-sage underline" onClick={() => { setMode(mode === "login" ? "register" : "login"); setErr(""); }}>{mode === "login" ? "Criar agora" : "Entrar"}</button></p>
       </form>

@@ -31,8 +31,8 @@ async function api<T = unknown>(url: string, init?: RequestInit): Promise<T> {
   const r = await fetch(url, { ...init, headers: { "content-type": "application/json", ...(init?.headers ?? {}) } });
   const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error((j as { error?: string }).error || "Erro de conexão"); return j as T;
 }
-interface SrvWedding { id: string; role: WeddingMeta["role"]; data: WeddingData; seq: number; giftToken: string; scheduleToken: string; team: TeamInfo; }
-const toLocal = (w: SrvWedding) => ({ data: w.data, meta: { seq: w.seq, role: w.role, giftToken: w.giftToken, scheduleToken: w.scheduleToken, team: w.team } as WeddingMeta });
+interface SrvWedding { id: string; role: WeddingMeta["role"]; data: WeddingData; seq: number; giftToken: string; scheduleToken: string; team: TeamInfo; billing: WeddingMeta["billing"]; }
+const toLocal = (w: SrvWedding) => ({ data: w.data, meta: { seq: w.seq, role: w.role, giftToken: w.giftToken, scheduleToken: w.scheduleToken, team: w.team, billing: w.billing } as WeddingMeta });
 
 interface Ctx {
   state: AppState; ready: boolean; data: WeddingData | null; meta: WeddingMeta | null; canEdit: boolean; syncError: string; saving: boolean;
@@ -66,7 +66,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     const items = [...queue.current.values()]; if (!items.length) return; queue.current.clear(); setSaving(true);
     const byW: Record<string, Op[]> = {}; items.forEach((i) => (byW[i.w] ??= []).push({ c: i.c, id: i.id, body: i.body }));
     try { for (const [w, ops] of Object.entries(byW)) { await api(`/api/w/${w}/ops`, { method: "POST", body: JSON.stringify({ ops }) }); const t = Date.now(); ops.forEach((o) => recent.current.set(`${w}:${o.c}:${o.id}`, t)); } setSyncError(""); }
-    catch (e) { setSyncError((e as Error).message); items.forEach((i) => queue.current.set(`${i.w}:${i.c}:${i.id}`, i)); }
+    catch (e) { const m = (e as Error).message; setSyncError(m); if (/período grátis/i.test(m)) { queue.current.clear(); setS((x) => { const w = Object.keys(byW)[0]; return x.meta[w] ? { ...x, meta: { ...x.meta, [w]: { ...x.meta[w], billing: { ...x.meta[w].billing, state: "blocked" } } } } : x; }); return setSaving(false); } items.forEach((i) => queue.current.set(`${i.w}:${i.c}:${i.id}`, i)); }
     setSaving(false);
   }, []);
   const schedule = useCallback(() => { if (timer.current) clearTimeout(timer.current); timer.current = setTimeout(flush, 350); }, [flush]);

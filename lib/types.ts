@@ -21,6 +21,7 @@ export interface WeddingData {
   tasks: Task[]; gifts: Gift[]; enxoval: EnxovalItem[]; moments: Moment[]; recados: Recado[];
 }
 export interface TeamInfo { owner: { id: string; email: string; name: string }; members: { id: string; email: string; name: string; role: "editar" | "ver" }[]; pending: { token: string; email: string; role: string }[]; }
-export interface WeddingMeta { seq: number; role: "owner" | "editar" | "ver"; giftToken: string; scheduleToken: string; team: TeamInfo; }
+export interface BillingInfo { state: "trial" | "active" | "blocked"; daysLeft: number; plan: "casal" | "assessor"; price: number; canceled: boolean; }
+export interface WeddingMeta { billing: BillingInfo; seq: number; role: "owner" | "editar" | "ver"; giftToken: string; scheduleToken: string; team: TeamInfo; }
 export interface AppUser { id: string; email: string; name: string; role: "casal" | "assessor"; }
 export interface AppState { user: AppUser | null; activeId: string | null; weddings: Record<string, WeddingData>; meta: Record<string, WeddingMeta>; hideMoney: boolean; }
