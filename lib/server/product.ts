@@ -64,16 +64,40 @@ export function parseProduct(html: string, finalUrl: string): Product {
 
 /** Busca oficial no Mercado Livre (exige app registrado: ML_CLIENT_ID e ML_CLIENT_SECRET). */
 let mlToken: { t: string; exp: number } | null = null;
-export async function searchMercadoLivre(q: string): Promise<Product[]> {
+async function mlAuth(): Promise<string> {
   const id = process.env.ML_CLIENT_ID, secret = process.env.ML_CLIENT_SECRET; if (!id || !secret) throw new Error("ml_not_configured");
   if (!mlToken || mlToken.exp < Date.now()) {
-    const r = await fetch("https://api.mercadolibre.com/oauth/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }, body: new URLSearchParams({ grant_type: "client_credentials", client_id: id, client_secret: secret }), signal: AbortSignal.timeout(9000) });
+    const r = await fetch("https://api.mercadolibre.com/oauth/token", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded", accept: "application/json" }, body: new URLSearchParams({ grant_type: "client_credentials", client_id: id.trim(), client_secret: secret.trim() }), signal: AbortSignal.timeout(9000) });
     if (!r.ok) throw new Error("Falha ao autenticar no Mercado Livre."); const j = (await r.json()) as { access_token: string; expires_in: number }; mlToken = { t: j.access_token, exp: Date.now() + (j.expires_in - 60) * 1000 };
   }
-  const r = await fetch(`https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(q)}&limit=12`, { headers: { authorization: `Bearer ${mlToken.t}` }, signal: AbortSignal.timeout(9000) });
+  return mlToken.t;
+}
+/** A busca por texto é restrita pelo Mercado Livre a parceiros certificados; se vier 403 avisamos a interface. */
+export async function searchMercadoLivre(q: string): Promise<Product[]> {
+  const t = await mlAuth();
+  const r = await fetch(`https://api.mercadolibre.com/sites/MLB/search?q=${encodeURIComponent(q)}&limit=12`, { headers: { authorization: `Bearer ${t}` }, signal: AbortSignal.timeout(9000) });
+  if (r.status === 403) throw new Error("ml_search_restricted");
   if (!r.ok) throw new Error(`Mercado Livre respondeu ${r.status}.`);
   const j = (await r.json()) as { results: { title: string; price: number; thumbnail: string; permalink: string }[] };
   return j.results.map((x) => ({ title: x.title, price: x.price, image: x.thumbnail.replace("http://", "https://").replace(/-I\.jpg$/, "-O.jpg"), store: "Mercado Livre", url: x.permalink }));
+}
+/** Lê um produto do Mercado Livre pela API oficial a partir do link (anúncio MLB123… ou catálogo /p/MLB123…). Retorna null se não conseguir. */
+export async function resolveMercadoLivre(rawUrl: string): Promise<Product | null> {
+  if (!process.env.ML_CLIENT_ID || !process.env.ML_CLIENT_SECRET) return null;
+  let text = rawUrl; try { text = decodeURIComponent(rawUrl); } catch { /* mantém */ }
+  const cat = text.match(/\/p\/(ML[A-Z])-?(\d{6,})/i); const item = text.match(/(ML[A-Z])-?(\d{6,})/i); const m = cat ?? item; if (!m) return null;
+  const id = `${m[1].toUpperCase()}${m[2]}`;
+  try {
+    const t = await mlAuth(); const h = { authorization: `Bearer ${t}` };
+    if (cat) {
+      const r = await fetch(`https://api.mercadolibre.com/products/${id}`, { headers: h, signal: AbortSignal.timeout(9000) }); if (!r.ok) return null;
+      const j = (await r.json()) as { name?: string; pictures?: { url?: string }[]; buy_box_winner?: { price?: number; item_id?: string } };
+      return { title: j.name ?? "", image: j.pictures?.[0]?.url ?? "", price: j.buy_box_winner?.price ?? 0, store: "Mercado Livre", url: `https://www.mercadolivre.com.br/p/${id}` };
+    }
+    const r = await fetch(`https://api.mercadolibre.com/items/${id}`, { headers: h, signal: AbortSignal.timeout(9000) }); if (!r.ok) return null;
+    const j = (await r.json()) as { title?: string; price?: number; pictures?: { secure_url?: string; url?: string }[]; thumbnail?: string; permalink?: string };
+    return { title: j.title ?? "", image: j.pictures?.[0]?.secure_url ?? j.pictures?.[0]?.url ?? (j.thumbnail ?? "").replace("http://", "https://"), price: j.price ?? 0, store: "Mercado Livre", url: j.permalink ?? rawUrl };
+  } catch { return null; }
 }
 export interface Place { name: string; address: string; phone: string; rating: number; mapsUrl: string; }
 /** Fornecedores reais via Google Places (GOOGLE_PLACES_KEY). */
