@@ -29,7 +29,7 @@ async function asaas<T>(path: string, method = "GET", body?: unknown): Promise<T
 }
 export const billingConfigured = () => !!apiKey();
 /** Diagnóstico sem expor a chave: só o tipo detectado, o endereço usado e o tamanho. */
-export const billingDiag = () => { const k = apiKey(); return { env: isSandbox() ? "sandbox" : "produção", host: new URL(base()).host, keyKind: k.includes("_hmlg_") ? "sandbox" : k.includes("_prod_") ? "produção" : k ? "não reconhecida" : "ausente", keyLength: k.length, build: "asaas-v2" }; };
+export const billingDiag = () => { const k = apiKey(); return { env: isSandbox() ? "sandbox" : "produção", host: new URL(base()).host, keyKind: k.includes("_hmlg_") ? "sandbox" : k.includes("_prod_") ? "produção" : k ? "não reconhecida" : "ausente", keyLength: k.length, webhookToken: !!process.env.ASAAS_WEBHOOK_TOKEN, build: "asaas-v3" }; };
 export async function startCheckout(scope: string, plan: "casal" | "assessor", user: { name: string; email: string }, cpfCnpj: string): Promise<string> {
   const row = await one<{ customer_id: string | null; subscription_id: string | null; status: string }>("SELECT customer_id, subscription_id, status FROM billing WHERE scope = ?", scope);
   let customer = row?.customer_id; let sub = row?.subscription_id;
@@ -38,6 +38,16 @@ export async function startCheckout(scope: string, plan: "casal" | "assessor", u
   await run("UPDATE billing SET customer_id = ?, subscription_id = ?, updated_at = ? WHERE scope = ?", customer, sub, now(), scope);
   const p = await asaas<{ data: { invoiceUrl: string; status: string }[] }>(`/subscriptions/${sub}/payments`);
   const open = p.data.find((x) => x.status === "PENDING" || x.status === "OVERDUE") ?? p.data[0]; if (!open?.invoiceUrl) throw new Error("Não foi possível gerar a cobrança. Tente novamente."); return open.invoiceUrl;
+}
+/** Consulta o Asaas e ativa se houver cobrança paga. Cobre o caso de o webhook não ter chegado. */
+export async function syncFromAsaas(scope: string): Promise<boolean> {
+  if (!billingConfigured()) return false;
+  const row = await one<{ subscription_id: string | null; status: string }>("SELECT subscription_id, status FROM billing WHERE scope = ?", scope); if (!row?.subscription_id || row.status === "active") return false;
+  try {
+    const p = await asaas<{ data: { status: string }[] }>(`/subscriptions/${row.subscription_id}/payments`);
+    if (p.data.some((x) => ["RECEIVED", "CONFIRMED", "RECEIVED_IN_CASH"].includes(x.status))) { await run("UPDATE billing SET status = 'active', paid_until = ?, updated_at = ? WHERE scope = ?", now() + 31 * 86400000, now(), scope); return true; }
+  } catch (e) { console.error("syncFromAsaas:", (e as Error).message); }
+  return false;
 }
 export async function cancelSubscription(scope: string) {
   const row = await one<{ subscription_id: string | null }>("SELECT subscription_id FROM billing WHERE scope = ?", scope); if (row?.subscription_id) await asaas(`/subscriptions/${row.subscription_id}`, "DELETE");

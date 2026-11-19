@@ -5,7 +5,7 @@ import { useData, useStore } from "@/lib/store";
 import { PageHeader, Badge, Field } from "@/components/ui";
 import { brl } from "@/lib/utils";
 
-interface B { state: "trial" | "active" | "blocked"; daysLeft: number; status: string; plan: "casal" | "assessor"; price: number; canceled: boolean; configured: boolean; diag?: { env: string; host: string; keyKind: string; keyLength: number; build: string } }
+interface B { state: "trial" | "active" | "blocked"; daysLeft: number; status: string; plan: "casal" | "assessor"; price: number; canceled: boolean; configured: boolean; diag?: { env: string; host: string; keyKind: string; keyLength: number; webhookToken: boolean; build: string } }
 export default function Assinatura() {
   const { d } = useData(); const { meta, state } = useStore(); const id = d.wedding.id; const [b, setB] = useState<B | null>(null); const [doc, setDoc] = useState(""); const [err, setErr] = useState(""); const [busy, setBusy] = useState(false); const isOwner = meta?.role === "owner";
   const load = () => fetch(`/api/w/${id}/billing`).then((r) => r.json()).then(setB);
@@ -20,13 +20,14 @@ export default function Assinatura() {
       <div className="card space-y-4 p-6">
         <div className="flex items-center justify-between"><div><div className="label">Plano {b.plan === "assessor" ? "Assessor" : "Casal"}</div><div className="font-serif text-4xl font-semibold">{brl(b.price)}<span className="text-base font-normal text-muted"> /mês</span></div></div><Badge tone={b.state === "blocked" ? "terra" : b.state === "trial" ? "gold" : "sage"}>{label}</Badge></div>
         <ul className="space-y-1.5 text-sm">{["Tudo incluso, sem limite de convidados", "Convite digital para todos os convidados", "Equipe com permissões", "Cancele quando quiser, sem multa"].map((t) => <li key={t} className="flex gap-2"><Check size={15} className="mt-0.5 text-sage" />{t}</li>)}</ul>
+        {b.state !== "active" && isOwner && <button className="btn btn-ghost w-full" disabled={busy} onClick={async () => { setBusy(true); await load(); setBusy(false); }}>Já paguei: verificar pagamento</button>}
         {state.user && b.state !== "active" && isOwner && <div className="space-y-3 border-t border-line pt-4"><Field label="CPF ou CNPJ (para emitir a cobrança)"><input className="input" inputMode="numeric" value={doc} onChange={(e) => setDoc(e.target.value)} /></Field>
           <button className="btn btn-primary w-full" disabled={busy || !b.configured} onClick={subscribe}><CreditCard size={15} />{busy ? "Abrindo…" : "Assinar com Pix, boleto ou cartão"}</button>
           {!b.configured && <p className="text-xs text-muted">A cobrança ainda não foi ativada neste servidor.</p>}</div>}
         {b.state === "active" && !b.canceled && isOwner && <button className="btn btn-ghost text-terra" disabled={busy} onClick={async () => { if (confirm("Cancelar a assinatura? O acesso continua até o fim do período pago.")) { await call({ action: "cancel" }); load(); } }}>Cancelar assinatura</button>}
         {!isOwner && <p className="text-xs text-muted">Só quem criou o casamento gerencia a assinatura.</p>}
         {err && <p role="alert" className="text-sm text-terra">{err}</p>}
-        {b.diag && <p className="border-t border-line pt-3 text-xs text-muted">Diagnóstico da cobrança: ambiente <b>{b.diag.env}</b> ({b.diag.host}) · chave {b.diag.keyKind}, {b.diag.keyLength} caracteres · versão {b.diag.build}</p>}
+        {b.diag && <p className="border-t border-line pt-3 text-xs text-muted">Diagnóstico da cobrança: ambiente <b>{b.diag.env}</b> ({b.diag.host}) · chave {b.diag.keyKind}, {b.diag.keyLength} caracteres · webhook: {b.diag.webhookToken ? "token configurado" : "SEM token (ASAAS_WEBHOOK_TOKEN ausente)"} · versão {b.diag.build}</p>}
       </div>
     </div>
   );
