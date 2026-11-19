@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { copyText } from "@/lib/utils";
-import { Bookmark } from "lucide-react";
+import { Bookmark, Download, Puzzle } from "lucide-react";
 
 /** Favorito que roda na página da loja, no navegador do casal, e envia nome, foto e preço ao Enlace. */
 export function buildBookmarklet(origin: string) {
@@ -12,8 +12,23 @@ export function Bookmarklet() {
   const ref = useRef<HTMLAnchorElement>(null); const [ok, setOk] = useState(false);
   useEffect(() => { ref.current?.setAttribute("href", buildBookmarklet(location.origin)); }, []);
   return (
+    <div className="space-y-4">
     <div className="card space-y-3 border-sage/40 bg-sage-soft/40 p-5">
-      <h3 className="font-sans text-base font-semibold tracking-tight">Capturar de qualquer loja, com foto e preço (computador)</h3>
+      <h3 className="font-sans text-base font-semibold tracking-tight"><Puzzle size={16} className="mr-1.5 inline" />Extensão do Enlace (Opera, Chrome e Edge): o jeito mais confiável</h3>
+      <p className="text-sm">Um clique no ícone, na página do produto, traz <b>nome, foto e preço</b> para a sua lista. Funciona em qualquer loja, e só lê a página quando você clica.</p>
+      <a href="/enlace-extensao.zip" download className="btn btn-primary btn-sm"><Download size={14} />Baixar a extensão (.zip)</a>
+      <ol className="list-decimal space-y-1.5 pl-5 text-sm">
+        <li>Extraia o arquivo .zip (clique direito &gt; Extrair tudo). Vai criar a pasta <b>enlace-extensao</b>. Não apague a pasta depois.</li>
+        <li><b>Opera:</b> digite <code className="rounded bg-white px-1">opera://extensions</code> na barra de endereço. <b>Chrome:</b> <code className="rounded bg-white px-1">chrome://extensions</code>. <b>Edge:</b> <code className="rounded bg-white px-1">edge://extensions</code>.</li>
+        <li>Ative o <b>Modo de desenvolvedor</b> (botão no canto da página).</li>
+        <li>Clique em <b>Carregar sem compactação</b> (Opera: "Carregar descompactada") e escolha a pasta <b>enlace-extensao</b>.</li>
+        <li>Fixe a extensão na barra: clique no ícone de peça de quebra-cabeça e no alfinete ao lado de "Adicionar ao Enlace".</li>
+        <li>Abra um produto na loja e clique no ícone. Abre o Enlace com tudo preenchido: confira e adicione.</li>
+      </ol>
+      <p className="text-xs text-muted">Se o seu endereço do Enlace não for <b>enlaceapp.vercel.app</b>, abra o arquivo <code>background.js</code> da pasta, troque o endereço na primeira linha e recarregue a extensão.</p>
+    </div>
+    <div className="card space-y-3 p-5">
+      <h3 className="font-sans text-base font-semibold tracking-tight">Alternativa: favorito (computador)</h3>
       <ol className="list-decimal space-y-1.5 pl-5 text-sm">
         <li>Mostre a barra de favoritos do navegador (Ctrl+Shift+B).</li>
         <li>Arraste este botão para a barra: <a ref={ref} onClick={(e) => e.preventDefault()} draggable className="btn btn-primary btn-sm mx-1 cursor-grab select-none" title="Adicionar ao Enlace"><Bookmark size={14} />Adicionar ao Enlace</a></li>
@@ -21,7 +36,8 @@ export function Bookmarklet() {
         <li>Abra o produto no Mercado Livre, Amazon, Shopee ou qualquer loja e clique no favorito.</li>
         <li>Aparece um cartão no canto da página com foto, nome e preço. Clique em <b>Adicionar à minha lista no Enlace</b>, confira e adicione.</li>
       </ol>
-      <p className="text-xs text-muted">Funciona porque roda no seu navegador, na página que você já abriu, e as lojas não bloqueiam isso. No celular, use "Colar o link" abaixo e complete preço e foto.</p>
+      <p className="text-xs text-muted">Alternativa à extensão. Alguns navegadores (como o Opera) bloqueiam favoritos com código; nesse caso use a extensão acima. No celular, use "Colar o link" abaixo e complete preço e foto.</p>
+    </div>
     </div>
   );
 }

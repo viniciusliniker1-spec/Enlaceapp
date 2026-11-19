@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Adicionar ao Enlace",
+  "version": "1.0.0",
+  "description": "Envia nome, foto e preço do produto aberto na loja para a sua lista de presentes no Enlace.",
+  "permissions": ["activeTab", "scripting"],
+  "action": { "default_title": "Adicionar ao Enlace" },
+  "background": { "service_worker": "background.js" },
+  "icons": { "48": "icon48.png", "128": "icon128.png" }
+}
