@@ -104,7 +104,7 @@ export interface Place { name: string; address: string; phone: string; rating: n
 export async function searchPlaces(q: string): Promise<Place[]> {
   const key = process.env.GOOGLE_PLACES_KEY; if (!key) throw new Error("places_not_configured");
   const r = await fetch("https://places.googleapis.com/v1/places:searchText", { method: "POST", headers: { "content-type": "application/json", "X-Goog-Api-Key": key, "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.nationalPhoneNumber,places.rating,places.googleMapsUri" }, body: JSON.stringify({ textQuery: q, languageCode: "pt-BR", maxResultCount: 12 }), signal: AbortSignal.timeout(9000) });
-  if (!r.ok) throw new Error(`Google Places respondeu ${r.status}.`);
+  if (!r.ok) { const e = (await r.json().catch(() => ({}))) as { error?: { message?: string; status?: string } }; const st = e.error?.status; throw new Error(st === "PERMISSION_DENIED" ? "O Google recusou a chave. Confirme que a \"Places API (New)\" está ativada, que o faturamento está ligado e que a chave permite essa API." : st === "INVALID_ARGUMENT" ? "A chave do Google parece inválida. Gere outra e confira se foi colada inteira." : `Google Places respondeu ${r.status}${e.error?.message ? `: ${e.error.message}` : ""}`); }
   const j = (await r.json()) as { places?: { displayName?: { text: string }; formattedAddress?: string; nationalPhoneNumber?: string; rating?: number; googleMapsUri?: string }[] };
   return (j.places ?? []).map((p) => ({ name: p.displayName?.text ?? "", address: p.formattedAddress ?? "", phone: p.nationalPhoneNumber ?? "", rating: p.rating ?? 0, mapsUrl: p.googleMapsUri ?? "" }));
 }
