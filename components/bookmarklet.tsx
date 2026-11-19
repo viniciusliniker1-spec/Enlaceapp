@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { copyText } from "@/lib/utils";
 import { Bookmark } from "lucide-react";
 
 /** Favorito que roda na página da loja, no navegador do casal, e envia nome, foto e preço ao Enlace. */
@@ -8,14 +9,15 @@ export function buildBookmarklet(origin: string) {
   return "javascript:" + code;
 }
 export function Bookmarklet() {
-  const ref = useRef<HTMLAnchorElement>(null);
+  const ref = useRef<HTMLAnchorElement>(null); const [ok, setOk] = useState(false);
   useEffect(() => { ref.current?.setAttribute("href", buildBookmarklet(location.origin)); }, []);
   return (
     <div className="card space-y-3 border-sage/40 bg-sage-soft/40 p-5">
       <h3 className="font-sans text-base font-semibold tracking-tight">Capturar de qualquer loja, com foto e preço (computador)</h3>
       <ol className="list-decimal space-y-1.5 pl-5 text-sm">
         <li>Mostre a barra de favoritos do navegador (Ctrl+Shift+B).</li>
-        <li>Arraste este botão para a barra: <a ref={ref} onClick={(e) => e.preventDefault()} draggable className="btn btn-primary btn-sm mx-1 cursor-grab select-none"><Bookmark size={14} />Adicionar ao Enlace</a></li>
+        <li>Arraste este botão para a barra: <a ref={ref} onClick={(e) => e.preventDefault()} draggable className="btn btn-primary btn-sm mx-1 cursor-grab select-none" title="Adicionar ao Enlace"><Bookmark size={14} />Adicionar ao Enlace</a></li>
+        <li>Se o favorito ficar com o código no lugar do nome, clique nele com o botão direito, escolha <b>Editar</b> e troque o nome para "Adicionar ao Enlace". Ou crie à mão: <button type="button" className="btn btn-ghost btn-sm mx-1" onClick={async () => { setOk(await copyText(buildBookmarklet(location.origin))); setTimeout(() => setOk(false), 2000); }}>{ok ? "Código copiado!" : "Copiar código"}</button> e, em Favoritos, adicione um novo com esse código no campo endereço (URL).</li>
         <li>Abra o produto no Mercado Livre, Amazon, Shopee ou qualquer loja e clique no favorito.</li>
         <li>Abre uma aba do Enlace com nome, foto e preço já preenchidos. Confira e adicione.</li>
       </ol>
