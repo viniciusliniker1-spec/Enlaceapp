@@ -16,34 +16,28 @@ export function Bookmarklet() {
     {(() => {
       const extBlock = (
     <div className="card space-y-3 border-sage/40 bg-sage-soft/40 p-5">
-        <h3 className="font-sans text-base font-semibold tracking-tight"><Puzzle size={16} className="mr-1.5 inline" />Extensão do Enlace (Opera, Chrome e Edge): o jeito mais confiável</h3>
-        <p className="text-sm">Um clique no ícone, na página do produto, traz <b>nome, foto e preço</b> para a sua lista. Funciona em qualquer loja, e só lê a página quando você clica.</p>
-        <a href="/enlace-extensao.zip" download className="btn btn-primary btn-sm"><Download size={14} />Baixar a extensão (.zip)</a>
+        <h3 className="font-sans text-base font-semibold tracking-tight"><Puzzle size={16} className="mr-1.5 inline" />Extensão (Opera, Chrome e Edge)</h3>
+        <a href="/enlace-extensao.zip" download className="btn btn-primary btn-sm"><Download size={14} />Baixar a extensão</a>
         <ol className="list-decimal space-y-1.5 pl-5 text-sm">
-          <li>Extraia o arquivo .zip (clique direito &gt; Extrair tudo). Vai criar a pasta <b>enlace-extensao</b>. Não apague a pasta depois.</li>
-          <li><b>Opera:</b> digite <code className="rounded bg-white px-1">opera://extensions</code> na barra de endereço. <b>Chrome:</b> <code className="rounded bg-white px-1">chrome://extensions</code>. <b>Edge:</b> <code className="rounded bg-white px-1">edge://extensions</code>.</li>
-          <li>Ative o <b>Modo de desenvolvedor</b> (botão no canto da página).</li>
-          <li>Clique em <b>Carregar sem compactação</b> (Opera: "Carregar descompactada") e escolha a pasta <b>enlace-extensao</b>.</li>
-          <li>Fixe a extensão na barra: clique no ícone de peça de quebra-cabeça e no alfinete ao lado de "Adicionar ao Enlace".</li>
-          <li>Abra um produto na loja e clique no ícone. Abre o Enlace com tudo preenchido: confira e adicione.</li>
+          <li>Extraia o arquivo baixado (botão direito &gt; Extrair tudo).</li>
+          <li>Abra <code className="rounded bg-white px-1">opera://extensions</code> (no Chrome: <code className="rounded bg-white px-1">chrome://extensions</code>) e ative o <b>Modo de desenvolvedor</b>.</li>
+          <li>Clique em <b>Carregar descompactada</b> e escolha a pasta extraída.</li>
+          <li>Na loja, abra o produto e clique no ícone da extensão.</li>
         </ol>
-        <p className="text-xs text-muted">Se o seu endereço do Enlace não for <b>enlaceapp.vercel.app</b>, abra o arquivo <code>background.js</code> da pasta, troque o endereço na primeira linha e recarregue a extensão.</p>
       </div>
         );
       const favBlock = (
       <div className="card space-y-3 p-5">
-        <h3 className="font-sans text-base font-semibold tracking-tight">Adicionar produtos de qualquer loja, com foto e preço (computador)</h3>
+        <h3 className="font-sans text-base font-semibold tracking-tight">Adicionar produtos de qualquer loja (computador)</h3>
         <ol className="list-decimal space-y-1.5 pl-5 text-sm">
-          <li>Mostre a barra de favoritos do navegador (Ctrl+Shift+B).</li>
-          <li>Arraste este botão para a barra: <a ref={ref} onClick={(e) => e.preventDefault()} draggable className="btn btn-primary btn-sm mx-1 cursor-grab select-none" title="Adicionar ao Enlace"><Bookmark size={14} />Adicionar ao Enlace</a></li>
-          <li><b>Atualizou o site? Apague o favorito antigo e crie de novo</b>, porque o código fica salvo dentro dele. Se o favorito ficar com o código no lugar do nome, clique nele com o botão direito, escolha <b>Editar</b> e troque o nome para "Adicionar ao Enlace". Ou crie à mão: <button type="button" className="btn btn-ghost btn-sm mx-1" onClick={async () => { setOk(await copyText(buildBookmarklet(location.origin))); setTimeout(() => setOk(false), 2000); }}>{ok ? "Código copiado!" : "Copiar código"}</button> e, em Favoritos, adicione um novo com esse código no campo endereço (URL).</li>
-          <li>Abra o produto no Mercado Livre, Amazon, Shopee ou qualquer loja e clique no favorito.</li>
-          <li>Aparece um cartão no canto da página com foto, nome e preço. Clique em <b>Adicionar à minha lista no Enlace</b>, confira e adicione.</li>
+          <li>Arraste este botão para a barra de favoritos: <a ref={ref} onClick={(e) => e.preventDefault()} draggable className="btn btn-primary btn-sm mx-1 cursor-grab select-none" title="Adicionar ao Enlace"><Bookmark size={14} />Adicionar ao Enlace</a></li>
+          <li>Abra um produto na loja e clique no favorito.</li>
+          <li>No cartão que aparecer, clique em <b>Adicionar à minha lista</b>.</li>
         </ol>
-        <p className="text-xs text-muted">No celular, use "Colar o link" abaixo e complete preço e foto.</p>
+        <p className="text-xs text-muted">Não conseguiu arrastar? <button type="button" className="font-semibold text-sage underline" onClick={async () => { setOk(await copyText(buildBookmarklet(location.origin))); setTimeout(() => setOk(false), 2000); }}>{ok ? "Código copiado!" : "Copie o código"}</button> e cole no endereço de um favorito novo. No celular, cole o link do produto abaixo.</p>
       </div>
       );
-      return opera ? <>{extBlock}<details className="card p-4 text-sm"><summary className="cursor-pointer font-semibold">Alternativa: favorito (nem sempre funciona no Opera)</summary><div className="mt-3">{favBlock}</div></details></> : <>{favBlock}<details className="card p-4 text-sm"><summary className="cursor-pointer font-semibold">Prefere uma extensão? Ver opção</summary><div className="mt-3">{extBlock}</div></details></>;
+      return opera ? <>{extBlock}<details className="card p-4 text-sm"><summary className="cursor-pointer font-semibold">Outra opção: favorito</summary><div className="mt-3">{favBlock}</div></details></> : <>{favBlock}<details className="card p-4 text-sm"><summary className="cursor-pointer font-semibold">Outra opção: extensão</summary><div className="mt-3">{extBlock}</div></details></>;
     })()}
     </div>
   );
