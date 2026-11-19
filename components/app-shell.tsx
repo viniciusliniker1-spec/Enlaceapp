@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CreditCard, LogOut, Home, Store, Wallet, Users, LayoutGrid, ListChecks, Gift, Mail, Clock, Briefcase, Search, Eye, EyeOff, Menu, X, Settings } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { Logo, Modal } from "./ui";
+import { InstallButton } from "./pwa";
 import { cn, daysUntil } from "@/lib/utils";
 
 const NAV = [
@@ -42,6 +43,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       {nav.map((n) => { const on = n.href === "/app" ? path === "/app" : path.startsWith(n.href); return (
         <Link key={n.href} href={n.href} className={cn("flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors", on ? "bg-sage text-white" : "text-muted hover:bg-white hover:text-ink")}><n.icon size={17} />{n.label}</Link>); })}
+      <div className="mt-auto pt-4"><InstallButton /></div>
     </nav>
   );
   return (
