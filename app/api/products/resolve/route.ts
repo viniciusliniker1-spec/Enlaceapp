@@ -8,7 +8,7 @@ export async function POST(req: Request) {
     if (/mercadoli(vre|bre)\./i.test(url.hostname)) { const ml = await resolveMercadoLivre(url.toString()); if (ml?.title) return json({ product: ml, warning: ml.price ? "" : "Não encontrei o preço neste anúncio. Informe o preço." }); }
     const { html, finalUrl } = await fetchPage(url.toString());
     if (/mercadoli(vre|bre)\./i.test(new URL(finalUrl).hostname) && finalUrl !== url.toString()) { const ml = await resolveMercadoLivre(finalUrl); if (ml?.title) return json({ product: ml, warning: ml.price ? "" : "Informe o preço." }); } const p = parseProduct(html, finalUrl);
-    if (looksBlocked(p, finalUrl)) return json({ product: { title: titleFromUrl(url.toString()), image: "", price: 0, store: p.store, url: url.toString() }, warning: "A loja bloqueou a leitura automática deste link. Conferi o nome pelo endereço; ajuste o nome e o preço e, se quiser, cole o endereço da foto." });
+    if (looksBlocked(p, finalUrl)) return json({ product: { title: titleFromUrl(url.toString()), image: "", price: 0, store: p.store, url: url.toString() }, warning: "A loja bloqueia a leitura automática por servidor. Pelo computador, use o favorito \"Adicionar ao Enlace\" (acima) para trazer nome, foto e preço; aqui, confira o nome e informe o preço e a foto." });
     return json({ product: p, warning: p.price ? "" : "Não encontrei o preço nesta página. Informe o preço." });
   } catch (e) { return json({ product: { title: titleFromUrl(url.toString()), image: "", price: 0, store: url.hostname.replace(/^www\./, ""), url: url.toString() }, warning: `${(e as Error).message || "Falha ao abrir o link."} Preencha os dados manualmente.` }); }
 }

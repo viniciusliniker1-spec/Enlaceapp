@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Search, Link2, Loader2, Plus, ExternalLink } from "lucide-react";
-import { brl, cn } from "@/lib/utils";
+import { Search, Link2, Loader2, Plus, ExternalLink, ImagePlus } from "lucide-react";
+import { brl, cn, fileToDataUrl } from "@/lib/utils";
 
 export interface Product { title: string; image: string; price: number; store: string; url: string; }
 const STORES = [
@@ -29,6 +29,7 @@ export function ProductPicker({ onAdd, defaultQuery = "" }: { onAdd: (p: Product
       {draft && <section className="card p-4"><h3 className="mb-2 font-sans text-sm font-semibold tracking-tight">3. Confira e adicione</h3>
         <div className="flex gap-3">{draft.image ? <img src={draft.image} alt="" referrerPolicy="no-referrer" className="size-24 shrink-0 rounded-xl object-cover" /> : <div className="grid size-24 shrink-0 place-items-center rounded-xl bg-ivory text-xs text-muted">sem foto</div>}
           <div className="min-w-0 flex-1 space-y-2"><input className="input" value={draft.title} placeholder="Nome do produto" onChange={(e) => setDraft({ ...draft, title: e.target.value })} /><div className="grid grid-cols-2 gap-2"><input className="input" type="number" min={0} value={draft.price || ""} placeholder="Preço (R$)" onChange={(e) => setDraft({ ...draft, price: +e.target.value })} /><input className="input" value={draft.store} placeholder="Loja" onChange={(e) => setDraft({ ...draft, store: e.target.value })} /></div></div></div>
+        <label className="btn btn-ghost btn-sm mt-3 cursor-pointer"><ImagePlus size={14} />{draft.image ? "Trocar foto" : "Enviar foto do aparelho"}<input type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setDraft({ ...draft, image: await fileToDataUrl(f) }); }} /></label>
         <button className="btn btn-primary mt-3 w-full" disabled={!draft.title.trim()} onClick={() => { onAdd(draft); setDraft(null); setUrl(""); }}><Plus size={15} />Adicionar à lista de presentes</button></section>}
     </div>
   );

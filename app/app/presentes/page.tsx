@@ -7,6 +7,7 @@ import { PageHeader, Progress, Badge, Field, Modal, Money } from "@/components/u
 import { cn, uid, brl } from "@/lib/utils";
 import { copyText } from "@/lib/utils";
 import { ProductPicker, type Product } from "@/components/product-picker";
+import { Bookmarklet } from "@/components/bookmarklet";
 import type { EnxovalItem, Gift } from "@/lib/types";
 
 const ST: Record<EnxovalItem["state"], string> = { novo: "Pendente", tenho: "Já temos", falta: "Falta", comprado: "Comprado/ganhado" };
@@ -58,6 +59,7 @@ export default function Presentes() {
             <div className="mt-3 flex flex-wrap gap-1.5"><button className="btn btn-ghost btn-sm" onClick={() => { const who = prompt("Quem escolheu este presente?"); if (who) update((s) => { const k = s.gifts.find((q) => q.id === x.id)!; k.got = Math.min(k.qty, k.got + 1); k.reservedBy.push(who); }); }}><Heart size={12} />Alguém escolheu</button><button className="btn btn-ghost btn-sm" onClick={() => setG(x)}>Editar</button><button aria-label="Excluir" className="ml-auto text-muted hover:text-terra" onClick={() => update((s) => { s.gifts = s.gifts.filter((q) => q.id !== x.id); })}><Trash2 size={14} /></button></div></article>))}</div></>)}
       {tab === "links" && (
         <div className="space-y-4"><p className="text-sm text-muted">Procurem o produto nas lojas (Mercado Livre, Amazon, Shopee, Magalu…) ou colem o link direto. O Enlace lê foto, nome e preço e põe na lista de presentes.</p>
+          <Bookmarklet />
           <div className="card p-5"><label className="mb-3 flex items-center gap-2 text-sm">Categoria na lista <select className="input w-auto" value={pickCat} onChange={(e) => setPickCat(e.target.value)}>{["Casa", "Cozinha", "Quarto", "Banheiro", "Sala", "Eletro e casa", "Lua de mel"].map((c) => <option key={c}>{c}</option>)}</select></label><ProductPicker onAdd={addProduct} /></div>
           <div className="card divide-y divide-line">{d.gifts.filter((x) => x.url).map((x) => <a key={x.id} href={x.url} target="_blank" rel="noreferrer" className="flex items-center justify-between gap-2 p-4 text-sm hover:bg-ivory"><span className="flex min-w-0 items-center gap-2"><Link2 size={14} className="shrink-0" /><span className="truncate">{x.title}</span></span><span className="shrink-0 text-xs text-muted">{x.store || host(x.url)} · {brl(x.price)}</span></a>)}{!d.gifts.some((x) => x.url) && <p className="p-6 text-center text-sm text-muted">Nenhum produto de loja adicionado ainda.</p>}</div></div>)}
       <Modal open={!!g} onClose={() => setG(null)} title="Presente"><div className="space-y-3">{g && <>
